@@ -12,7 +12,11 @@ SDN P4 INT deployed in P4PI raspberry and security analysis
 
 
 
+
 ##DEBUG
+
+### Switch forwarding
+```sysctl -w net.ipv4.ip_forward=1```
 
 ### tcpdump R3 eth0, no watchlist
 ```
