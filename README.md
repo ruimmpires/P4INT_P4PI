@@ -1,7 +1,9 @@
 # P4INT_P4PI
 SDN P4 INT deployed in P4PI raspberry and security analysis
 
+[P4PI main site](https://github.com/p4lang/p4pi)
 
+[Creating a new Bmv2 project on P4Pi](https://github.com/p4lang/p4pi/wiki/Creating-a-new-Bmv2-project-on-P4Pi)
 
 ##INSTALL P4PI
 1 start here https://github.com/p4lang/p4pi/wiki/Installing-P4Pi
