@@ -1,5 +1,151 @@
 # P4INT_P4PI
-SDN P4 INT deployed in P4PI raspberry and security analysis
+SDN P4 INT deployed in P4PI raspberry and security analysis.
+You can find a similar version running in Mininet,  in https://github.com/ruimmpires/P4INT_Mininet
+
+## WHY
+This is an SDN implementation of P4 INT-MD for bmv2 in P4Pi. This project is ongoing until hopefuly July 2023 as part of my thesis "SECURITY FOR SDN ENVIRONMENTS WITH P4" to be also available publicly. The code is mostly not original and you may find most of it in the following repositories:
+- https://github.com/lifengfan13/P4-INT
+- https://github.com/GEANT-DataPlaneProgramming/int-platforms
+- https://github.com/mandaryoshi/p4-int. You may also check the Mandar Joshi's thesis "Implementation and evaluation of INT in P4" here https://www.diva-portal.org/smash/get/diva2:1609265/FULLTEXT01.pdf.
+- [P4PI ARP](https://github.com/p4lang/p4pi/blob/master/packages/p4pi-examples/bmv2/arp_icmp/arp_icmp.p4)
+
+You may also look into the official INT code available in the [p4 official repository for INT](https://github.com/p4lang/p4factory/tree/master/apps/int)
+
+## INTRODUCTION
+SDN with P4 brings a new set of possibilities as the way the packets are processed is not defined by the vendor, but rather by the P4 program. Using this language, developers can define data plane behavior, specifying how switches shall process the packets. P4 lets developers define which headers a switch shall parse, how tables match on each header, and which actions the switch shall perform on each header. This new programmability extends the capabilities of the data plane into security features, such as stateful packet inspection and filtering, thus relieving the control plane. This offloading of security is enhanced by the ability to run at line speed as P4 runs on the programmed devices.
+
+You may find some courses in universities such as:
+* [Stanford Building an Internet Router](https://cs344-stanford.github.io/documentation/internet-router/)
+* https://p4campus.cs.princeton.edu/
+* https://www.princeton.edu/~hyojoonk/
+
+Find below the specs:
+* [P4Runtime Specification](https://p4.org/p4-spec/p4runtime/main/P4Runtime-Spec.html#sec-client-arbitration-and-controller-replication)
+* [P416 Language Specification working spec](https://p4.org/p4-spec/docs/P4-16-working-spec.html)
+* [P416 Language Specification version 1.2.3](https://p4.org/p4-spec/docs/P4-16-v1.2.3.pdf)
+* [In-band Network Telemetry (INT) Dataplane Specification Version 2.1](https://p4.org/p4-spec/docs/INT_v2_1.pdf)
+* [INT spec source](https://github.com/p4lang/p4-applications/tree/master/telemetry/specs)
+
+## TOPOLOGY
+For the sake of simplicity and due to the shortage of Raspberry Pis, we streamlined the topology to three P4 switches. The WiFi interfaces are configured as APs, so we may regard those as L2 switches. We used 2 laptops with several WiFi interfaces to simulate the hosts: h1 (client), h2, hc (collector), ha (attacker) and hs (server). We used the following Raspberry PIs as described in the figure:
+1. Raspberry Pi 3 Model B, Rev 1.2, 1GB of RAM. This device will act as INT source.
+2. Raspberry Pi 4 Model B, Rev 1.5, 8GB of RAM. This device will act as INT transit.
+3. Raspberry Pi 4 Model B, Rev 1.1, 4GB of RAM. This device will act as INT sink.
+![Diagram of the INT solution with three P4Pis.](/pictures/p4pi_intv11.png)
+
+As the Raspberry Pis only have one on-board Ethernet and one WiFi interface, we added the necessary USB devices as in the picture:
+![INT lab with three P4Pis](/pictures/p4pi_hw.jpg)
+
+## PRE-REQUISITES
+We started with following the steps in the P4Pi wiki, downloaded the image, burned it to the SD-cards and then boot and configure each one (example code below for s3):
+* connect via WiFi, papi/raspberry;
+* ssh, pi/raspberry, sudo su, apt update;
+* change static IPs, br0 and eth0, example below for the s3:
+```
+nano /etc/dhcpcd.conf
+interface br0
+  static ip_address=10.0.3.1/24
+  nohook wpa_supplicant
+interface eth0
+  static ip_address=10.2.0.2/30
+  interface wlx38a28c80c2ee
+  static ip_address=10.0.4.1/24
+  nohook wpa_supplicant
+```
+* Change DHCP
+```
+nano /etc/dnsmasq.d/p4edge.conf
+interface=br0
+dhcp-range=set:br0,10.0.3.2,10.0.3.10,255.255.255.0,24h
+domain=p4pi3
+address=/gw.p4pi3/10.0.3.1
+
+interface=wlx38a28c80c2ee
+dhcp-range=set:wlx38a28c80c2ee,10.0.4.2,10.0.4.10,255.255.255.0,24h
+domain=p4pis
+address=/gw.p4pis/10.0.4.1
+```
+* Change WiFi
+```
+cp /etc/hostapd/hostapd.conf /etc/hostapd/wlan0.conf
+cp /etc/hostapd/hostapd.conf /etc/hostapd/wlx38a28c80c2ee.conf
+nano /etc/hostapd/wlan0.conf
+  ssid=p4pi3
+nano /etc/hostapd/wlx38a28c80c2ee.conf
+  interface=wlx38a28c80c2ee
+  ssid=p4pis
+```
+* enable the new hostapd services
+```
+systemctl disable hostapd
+systemctl enable hostapd@wlan0
+systemctl enable hostapd@wlx38a28c80c2ee
+```
+* reboot
+* connect via WiFi, papi3/raspberry
+* ssh, pi/raspberry, sudo su
+* add static routing as needed
+```
+ip r add 10.0.1.0/24 via 10.2.0.1
+ip r add 10.0.2.0/24 via 10.2.0.1
+```
+* copy all the P4 code to /root/bmv2/intv8/. Be sure to name the main p4 file the same as the folder.
+* configure the bmv2 service and change as needed:
+```
+nano /usr/bin/bmv2-start
+#!/bin/bash
+export P4PI=/root/PI
+export GRPCPP=/root/P4Runtime_GRPCPP
+export GRPC=/root/grpc
+BM2_WDIR=/root/bmv2
+P4_PROG=l2switch
+T4P4S_PROG_FILE=/root/t4p4s-switch
+if [ -f "${T4P4S_PROG_FILE}" ]; then
+P4_PROG=$(cat "${T4P4S_PROG_FILE}")
+else
+echo "${P4_PROG}" > "${T4P4S_PROG_FILE}"
+fi
+rm -rf ${BM2_WDIR}/bin
+mkdir ${BM2_WDIR}/bin
+echo "Compiling P4 code"
+p4c-bm2-ss -I /usr/share/p4c/p4include --std p4-16 --p4runtime-files ${BM2_WDIR}
+echo "Launching BMv2 switch"
+sudo simple_switch_grpc -i 0@veth0 -i 1@eth0 -i 2@wlx38a28c80c2ee \
+${BM2_WDIR}/bin/${P4_PROG}.json -- --grpc-server-addr 127.0.0.1:50051
+```
+* configure the switch
+```
+echo intv8 > /root/t4p4s-switch
+```
+* stop and disable t4p4s, stop bmv2, enable bmv2:
+```
+systemctl stop t4p4s | systemctl disable t4p4s
+systemctl stop bmv2 | systemctl enable bmv2
+```
+* start the bmv2 service and check its status:
+```
+systemctl start bmv2
+systemctl status bmv2
+```
+Confirm the service is running before the next step.
+* load the static tables into the P4 switch
+```
+simple_switch_CLI < /root/bmv2/intv8/r3commands.txt
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 [P4PI main site](https://github.com/p4lang/p4pi)
 
