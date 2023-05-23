@@ -186,7 +186,7 @@ The hosts hc and ha are not required to have routing.
 ## INT source
 The INT source switch must identify the flows via its watchlist. When there is a match, the switch adds the INT header and its INT data accordingly. In this lab, the source switch is s1 so the code below is the content to be uploaded the switch tables:
 ```
-#L3 forwading
+#L3 forwarding
 table_add l3_forward.ipv4_lpm ipv4_forward 10.0.3.0/24 => d8:3a:dd:11:7a:de 1
 table_add l3_forward.ipv4_lpm ipv4_forward 10.0.4.0/24 => d8:3a:dd:11:7a:de 1
 table_add l3_forward.ipv4_lpm ipv4_forward 10.0.2.0/24 => d8:3a:dd:11:7a:de 1
@@ -226,7 +226,7 @@ d8:3a:dd:11:7a:de (oui Unknown) > d8:3a:dd:11:7a:de (oui Unknown), ethertype IPv
 0x0050: 0000 0001 0000 0000 494e 5448 31 ........INTH1
 ```
 ### Log of one packet matching
-If you run in the debugging mode, search for the "intl4_shim" message and then identify the flow. We have captured one flow in the [p4_log_s1.log](log/p4_log_s1.log)
+If you run in the debugging mode, search for the "intl4_shim" message and then identify the flow. We have captured one flow in the [p4_log_s1.log](logs/p4_log_s1.log)
 
 ## INT Transit
 The int transit switch identifies that there is a INT packet embedded in the packet, so reads the instructions encoded in the INT header and adds its own INT data.
@@ -262,7 +262,7 @@ dc:a6:32:40:1b:03 (oui Unknown) > dc:a6:32:40:1b:03 (oui Unknown), ethertype IPv
 0x0080: 0000 0000 494e 5448 31 ....INTH1
 ```
 ### Log of one packet matching
-If you run in the debugging mode, search for the "intl4_shim" message and then identify the flow. We have captured one flow in the [p4_log_s2.log](log/p4_log_s2.log)
+If you run in the debugging mode, search for the "intl4_shim" message and then identify the flow. We have captured one flow in the [p4_log_s2.log](logs/p4_log_s2.log)
 
 ## INT sink
 The INT sink switch detects the INT header in the packets and reads the instructions. Then adds its own INT data and creates a new packet as defined in the table below, towards the INT collector. This new packet is mirrored to the port 0 towards the INT collector. Then extracts the INT data and restores the packet as it was originally and sends to the server.
@@ -317,7 +317,7 @@ pi@p4pi3:~$ sudo tcpdump -e -X -i wlx38a28c80c2ee udp
 0x0020: 31 
 ```
 ### Log of one packet matching
-If you run in the debugging mode, search for the "report" message and then identify the flow. We have captured one flow in the [p4_log_s3.log](log/p4_log_s3.log)
+If you run in the debugging mode, search for the "report" message and then identify the flow. We have captured one flow in the [p4_log_s3.log](logs/p4_log_s3.log)
 
 ## Collection of INT statistics and visualization
 As described in 4.2, both InfluxDB and Grafana need to be installed and configured.
@@ -405,7 +405,7 @@ Add the InfluxDB datasource in the Grafana web interface, usually localhost:3000
 3. Test and if all is ok, you will see the message "datasource is working. 4 measurements found".
 
 #### Import the dashboard
-Import the dashboard in the Grafana web interface. Go to Home > Dashboards > Import dashboard and upload the [Grafana dashboard json](grafana/INT statistics.json). Note: this is optional, as you can build your own dashboard. Note: make sure the collector is syncronized with an ntp or rather manually sync with the date command
+Import the dashboard in the Grafana web interface. Go to Home > Dashboards > Import dashboard and upload the [Grafana dashboard json](grafana/INTstatisticsP4Pi.json). Note: this is optional, as you can build your own dashboard. Note: make sure the collector is syncronized with an ntp or rather manually sync with the date command
 
 ### Visualization in Grafana
 The visualization of the INT packets in Grafana offers quick insights of the behavior of the network. Additionally to the examples we provided in 4.2.2, we now have data from a real environment.
