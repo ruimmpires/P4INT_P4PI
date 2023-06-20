@@ -424,8 +424,8 @@ The table form easily identifies what are the root causes.
 
 
 ## My labs
-If you have access to the FCTUC/DEI VPN or are locally connected, you may see the stats here http://10.254.0.171:3000/d/V8Ss1QY4k/int-statistics?orgId=1&refresh=1m&from=now-15m&to=now with the credentials readonly/readonly.
-and here http://10.254.0.166:3000/d/V8Ss1QY4k/int-statistics?orgId=1&refresh=1m
+If you have access to the FCTUC/DEI VPN or are locally connected, you may see the stats here [http://10.254.0.171:3000/d/V8Ss1QY4k/int-statistics?orgId=1&refresh=1m&from=now-15m&to=now](http://10.254.0.166:3000/d/V8Ss1QY4k/int-statistics?orgId=1&refresh=1m&from=now-15m&to=now) with the credentials readonly/readonly.
+
 Here is based on P4Pi http://g0mesp1res.dynip.sapo.pt:3000/goto/pWvFPOw4R?orgId=1
 
 ## Other resources
